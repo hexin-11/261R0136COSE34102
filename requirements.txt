@@ -2,9 +2,12 @@ torch
 transformers
 datasets
 evaluate
+accelerate
 numpy
 pandas
 scikit-learn
 matplotlib
 tqdm
 seqeval
+sentencepiece
+protobuf
