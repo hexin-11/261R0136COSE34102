@@ -1,38 +1,44 @@
 """
 Tokenizer analysis script.
 
-This script will be used to compare subword fragmentation across
-English, Chinese, and Korean datasets under multilingual tokenizers.
+This script compares subword fragmentation across English, Chinese,
+and Korean datasets under the XLM-R tokenizer.
 """
 
-from transformers import AutoTokenizer
 from datasets import load_dataset
+from transformers import AutoTokenizer
 import pandas as pd
+import os
 
 
-def count_words(text):
+def count_words(text, language):
     """
-    Count words using whitespace splitting.
-    This is a simple approximation for tokenizer analysis.
+    Count words for tokenizer analysis.
+
+    For English and Korean, whitespace splitting is used.
+    For Chinese, character-level counting is used as a simple approximation.
     """
-    return len(text.split())
+    if language == "Chinese":
+        return max(len(text.replace(" ", "")), 1)
+    else:
+        return max(len(text.split()), 1)
 
 
 def count_subword_tokens(text, tokenizer):
     """
-    Count subword tokens produced by a multilingual tokenizer.
+    Count subword tokens produced by the tokenizer.
     """
     return len(tokenizer.tokenize(text))
 
 
-def analyze_dataset_texts(texts, tokenizer, language_name):
+def analyze_texts(texts, tokenizer, language_name):
     """
-    Analyze average word count, subword token count, and subword/word ratio.
+    Analyze word count, subword token count, and subword/word ratio.
     """
     records = []
 
     for text in texts:
-        word_count = max(count_words(text), 1)
+        word_count = count_words(text, language_name)
         subword_count = count_subword_tokens(text, tokenizer)
         ratio = subword_count / word_count
 
@@ -46,34 +52,53 @@ def analyze_dataset_texts(texts, tokenizer, language_name):
     return pd.DataFrame(records)
 
 
-def main():
+def main(sample_size=1000):
     tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base")
 
-    # Placeholder examples.
-    # Full dataset-based analysis will be added later.
-    examples = {
-        "English": [
-            "This project studies multilingual Transformer distillation."
-        ],
-        "Chinese": [
-            "本项目研究多语言Transformer模型蒸馏。"
-        ],
-        "Korean": [
-            "이 프로젝트는 다국어 Transformer 지식 증류를 연구합니다."
-        ]
-    }
+    print("Loading datasets...")
 
-    all_results = []
+    xnli_en = load_dataset("facebook/xnli", "en", split="validation")
+    xnli_zh = load_dataset("facebook/xnli", "zh", split="validation")
+    klue_nli = load_dataset("klue", "nli", split="validation")
 
-    for language, texts in examples.items():
-        df = analyze_dataset_texts(texts, tokenizer, language)
-        all_results.append(df)
+    english_texts = [
+        item["premise"] + " " + item["hypothesis"]
+        for item in xnli_en.select(range(min(sample_size, len(xnli_en))))
+    ]
 
-    result_df = pd.concat(all_results, ignore_index=True)
-    print(result_df)
+    chinese_texts = [
+        item["premise"] + " " + item["hypothesis"]
+        for item in xnli_zh.select(range(min(sample_size, len(xnli_zh))))
+    ]
 
-    summary = result_df.groupby("language").mean(numeric_only=True)
+    korean_texts = [
+        item["premise"] + " " + item["hypothesis"]
+        for item in klue_nli.select(range(min(sample_size, len(klue_nli))))
+    ]
+
+    print("Analyzing tokenizer fragmentation...")
+
+    en_df = analyze_texts(english_texts, tokenizer, "English")
+    zh_df = analyze_texts(chinese_texts, tokenizer, "Chinese")
+    ko_df = analyze_texts(korean_texts, tokenizer, "Korean")
+
+    result_df = pd.concat([en_df, zh_df, ko_df], ignore_index=True)
+
+    summary = result_df.groupby("language").mean(numeric_only=True).reset_index()
+
+    os.makedirs("experiments/results", exist_ok=True)
+
+    full_output_path = "experiments/results/tokenizer_analysis_full.csv"
+    summary_output_path = "experiments/results/tokenizer_analysis.csv"
+
+    result_df.to_csv(full_output_path, index=False)
+    summary.to_csv(summary_output_path, index=False)
+
+    print("\nTokenizer Analysis Summary:")
     print(summary)
+
+    print(f"\nSaved summary to: {summary_output_path}")
+    print(f"Saved full results to: {full_output_path}")
 
 
 if __name__ == "__main__":
