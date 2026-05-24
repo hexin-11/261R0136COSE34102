@@ -5,6 +5,8 @@ This script generates:
 1. Main accuracy comparison bar chart.
 2. Attention entropy distance comparison bar chart.
 3. SEAD beta ablation chart.
+4. Tokenizer subword-to-word ratio bar chart.
+5. Raw attention entropy comparison bar chart.
 """
 
 import os
@@ -72,6 +74,41 @@ def plot_ablation_results(result_dir):
     print(f"Saved {output_path}")
 
 
+def plot_tokenizer_ratio(result_dir):
+    df = pd.read_csv(os.path.join(result_dir, "tokenizer_analysis.csv"))
+
+    plt.figure(figsize=(8, 6))
+    plt.bar(df["language"], df["subword_word_ratio"])
+    plt.ylabel("Subword-to-Word Ratio")
+    plt.xlabel("Language")
+    plt.title("Tokenizer Fragmentation Analysis")
+    plt.tight_layout()
+
+    output_path = os.path.join(result_dir, "tokenizer_ratio_bar_chart.png")
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
+    print(f"Saved {output_path}")
+
+
+def plot_attention_entropy_raw(result_dir):
+    df = pd.read_csv(os.path.join(result_dir, "attention_entropy_analysis.csv"))
+
+    plt.figure(figsize=(9, 6))
+    plt.bar(df["model"], df["attention_entropy"])
+    plt.ylabel("Attention Entropy")
+    plt.xlabel("Model")
+    plt.title("Average Attention Entropy Comparison")
+    plt.xticks(rotation=25, ha="right")
+    plt.tight_layout()
+
+    output_path = os.path.join(result_dir, "attention_entropy_bar_chart.png")
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
+    print(f"Saved {output_path}")
+
+
 def main():
     result_dir = "experiments/results"
     os.makedirs(result_dir, exist_ok=True)
@@ -79,6 +116,8 @@ def main():
     plot_main_results(result_dir)
     plot_entropy_distance(result_dir)
     plot_ablation_results(result_dir)
+    plot_tokenizer_ratio(result_dir)
+    plot_attention_entropy_raw(result_dir)
 
 
 if __name__ == "__main__":
