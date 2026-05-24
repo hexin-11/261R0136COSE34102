@@ -1,0 +1,4 @@
+method,beta,accuracy,note
+SEAD,0.1,0.36,Entropy alignment weight too large
+SEAD,0.01,0.417,Reduced entropy alignment weight
+SEAD,0.001,0.544,Best trade-off in current experiments

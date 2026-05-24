@@ -1,0 +1,6 @@
+method,accuracy,note
+Student Fine-tuning,0.352,Student baseline on KLUE-NLI subset
+Vanilla KD,0.372,KD with non-fine-tuned teacher
+Improved Teacher XLM-R,0.499,Fine-tuned XLM-R teacher
+Improved Vanilla KD,0.547,KD with improved fine-tuned teacher
+SEAD beta=0.001,0.544,SEAD with entropy alignment
